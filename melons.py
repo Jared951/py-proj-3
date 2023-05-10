@@ -13,14 +13,14 @@ class Melon:
     ):
         self.melon_id = melon_id
         self.common_name = common_name
-        self.price = price,
+        self.price = price
         self.image_url = image_url
         self.color = color
         self.seedless = seedless
     
     def __repr__(self):
         """Convenience method to show info about melon in console."""
-        return f'<Melon: {self.melon_id}, {self.common_name}>'
+        return f"<Melon: {self.melon_id}, {self.common_name}>"
     
     def price_str(self):
         """Return the formatted price as a string"""
