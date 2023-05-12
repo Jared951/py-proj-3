@@ -2,14 +2,58 @@ from flask import Flask, render_template, redirect, flash, request, session, url
 import jinja2
 
 import melons
+from forms import LoginForm
+import customers
 
 app = Flask(__name__)
 app.jinja_env.undefined = jinja2.StrictUndefined
 app.secret_key = "super secret"
 
+
+
+
+
 @app.route('/')
 def homepage():
     return render_template('base.html')
+
+
+
+
+@app.route('/login', methods=["GET", "POST"])
+def login():
+   #login functionality
+   form = LoginForm()
+
+   if form.validate_on_submit():
+      username = form.username.data
+      password = form.password.data
+      
+      user = customers.get_by_username(username)
+
+      if not user or user["password"] != password:
+         flash("Invalid username or password")
+         return redirect(url_for('login'))
+   
+      session["username"] = user["username"]
+      flash("Logged in!")
+      return redirect(url_for('all_melons'))
+
+   return render_template("login.html", form=form)
+
+
+
+
+@app.route('/logout')
+def logout():
+   #logs user out
+   del session["username"]
+
+   flash("Logged Out!")
+   return redirect(url_for('login'))
+
+
+
 
 @app.route("/melons")
 def all_melons():
@@ -17,11 +61,17 @@ def all_melons():
    melon_list = melons.get_all()
    return render_template("all_melons.html", melon_list=melon_list)
 
+
+
+
 @app.route("/melon/<melon_id>")
 def melon_details(melon_id):
    """Return a page showing all info about a melon. Also, provide a button to buy that melon."""
    melon = melons.get_by_id(melon_id)
    return render_template("melon_details.html", melon=melon)
+
+
+
 
 @app.route("/add_to_cart/<melon_id>")
 def add_to_cart(melon_id):
@@ -36,9 +86,17 @@ def add_to_cart(melon_id):
    print(cart)
    return redirect(url_for('show_shopping_cart'))
 
+
+
+
 @app.route("/cart")
 def show_shopping_cart():
    """Display contents of shopping cart."""
+   
+   if 'username' not in session:
+      flash('Please sign in first')
+      return redirect(url_for('login'))
+   
    order_total = 0
    cart_melons = []
 
@@ -48,7 +106,6 @@ def show_shopping_cart():
       melon = melons.get_by_id(melon_id)
 
       total_cost = melon.price * quantity
-
       order_total += total_cost
 
       melon.quantity = quantity 
@@ -58,11 +115,20 @@ def show_shopping_cart():
 
    return render_template("cart.html", cart_melons=cart_melons, order_total=order_total)
 
+
+
+
 @app.route('/empty-cart')
 def empty_cart():
    session['cart'] = {}
 
    return redirect(url_for('show_shopping_cart'))
+
+
+
+@app.errorhandler(404)
+def error_404(e):
+   return render_template("404.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
